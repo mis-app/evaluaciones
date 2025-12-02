@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Seguimiento de Evaluaciones - Múltiples Cursos (Versión Única)</title>
+    <title>Seguimiento de Evaluaciones - Múltiples Cursos</title>
     <style>
         /* --- CSS (Estilos) --- */
         body {
@@ -153,7 +153,8 @@
         const totalCourses = 4;
         const courseKeys = Array.from({ length: totalCourses }, (_, i) => `course_${i + 1}`);
 
-        // Función principal para inicializar y cargar datos
+        // --- INICIALIZACIÓN ---
+
         document.addEventListener('DOMContentLoaded', () => {
             const mainContainer = document.getElementById('main-grid-container');
 
@@ -162,8 +163,11 @@
                 mainContainer.appendChild(createCourseColumn(courseKey));
             });
 
-            // 2. Cargar datos guardados (referencias y alumnos)
+            // 2. Cargar datos guardados (persistencia)
             loadAllData();
+            
+            // 3. Conectar los botones de AÑADIR (Solución al problema de 'onclick')
+            attachEventListeners(); 
         });
 
         // --- ESTRUCTURA DINÁMICA DE LA INTERFAZ ---
@@ -193,7 +197,7 @@
                         <h2 class="ev-header ev-header-${index}">EV${index}</h2>
                         <div class="input-group">
                             <input type="text" id="input-${courseKey}-${ev}" placeholder="Nombre del Alumno/a...">
-                            <button onclick="addStudent('${courseKey}', '${ev}')">Añadir</button>
+                            <button class="add-student-btn" data-course="${courseKey}" data-eval="${ev}">Añadir</button>
                         </div>
                         <ul id="list-${courseKey}-${ev}" class="student-list">
                             </ul>
@@ -203,6 +207,22 @@
 
             return column;
         }
+        
+        // --- CONEXIÓN DE EVENTOS (SOLUCIÓN) ---
+        
+        function attachEventListeners() {
+            // Conectar el evento CLICK a todos los botones con la clase 'add-student-btn'
+            document.querySelectorAll('.add-student-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const courseKey = this.getAttribute('data-course');
+                    const evaluation = this.getAttribute('data-eval');
+                    
+                    // Llamar a la lógica principal con los datos extraídos
+                    addStudent(courseKey, evaluation);
+                });
+            });
+        }
+
 
         // --- LÓGICA DE ALUMNOS (AÑADIR/ELIMINAR) ---
 
@@ -217,12 +237,12 @@
 
             const uniqueId = `${courseKey}_${evaluation}`;
             
-            // 1. Guardar en la memoria local
-            saveStudent(uniqueId, studentName);
-            
-            // 2. Crear y mostrar el elemento de la lista
-            createStudentItem(uniqueId, studentName); 
-            
+            // 1. Guardar en la memoria local (solo si no existe)
+            if (saveStudent(uniqueId, studentName)) {
+                 // 2. Crear y mostrar el elemento de la lista (solo si se guardó)
+                createStudentItem(uniqueId, studentName); 
+            }
+           
             // 3. Limpiar el input
             inputElement.value = ""; 
         }
@@ -238,6 +258,8 @@
 
             const listItem = document.createElement('li');
             listItem.className = 'student-item';
+            
+            // Mantenemos el onclick para el botón de eliminar, ya que es un elemento dinámico y funciona
             listItem.innerHTML = `
                 <span>${name}</span>
                 <button class="delete-btn" onclick="removeStudent('${uniqueId}', this)">
@@ -245,16 +267,13 @@
                 </button>
             `;
 
-            // AÑADIR EL NUEVO ELEMENTO AL PRINCIPIO DE LA LISTA
             list.appendChild(listItem);
         }
 
         // Función para eliminar un alumno y actualizar el almacenamiento (se activa al hacer clic en ❌)
         function removeStudent(uniqueId, buttonElement) {
             const listItem = buttonElement.parentNode;
-            // No es necesario obtener el nombre aquí, solo eliminar el elemento del DOM
             const studentName = listItem.querySelector('span').textContent;
-
 
             // 1. Eliminar del DOM
             listItem.remove();
@@ -276,7 +295,9 @@
             if (!students.includes(name)) {
                 students.push(name);
                 localStorage.setItem(uniqueId, JSON.stringify(students));
+                return true; // Éxito
             }
+            return false; // Duplicado
         }
 
         function deleteStudent(uniqueId, name) {
