@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seguimiento de Evaluaciones - Múltiples Cursos (Versión Única)</title>
+    <style>
+        /* --- CSS (Estilos) --- */
+        body {
+            font-family: sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #007bff;
+            margin-bottom: 5px;
+        }
+
+        p {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #555;
+        }
+
+        .main-grid-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr); 
+            gap: 20px;
+            padding: 0 10px; 
+        }
+
+        .course-column {
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+
+        /* --- Estilo del Input/Header de Referencia del Curso --- */
+        .course-reference {
+            display: flex;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 10px;
+        }
+
+        .course-ref-input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1.1em;
+            font-weight: bold;
+            text-align: center;
+            background-color: #e9ecef;
+        }
+
+        /* --- Estilo de las Evaluaciones (EV0, EV1, EV2) --- */
+        .evaluation-section {
+            margin-bottom: 20px;
+        }
+
+        .ev-header {
+            text-align: center;
+            padding: 10px 0;
+            margin-top: 0;
+            margin-bottom: 5px;
+            color: white;
+            font-size: 1.5em;
+            border-radius: 4px;
+        }
+
+        /* Colores originales */
+        .ev-header-0 { background-color: #ff6666; } /* Rojo */
+        .ev-header-1 { background-color: #66b3ff; } /* Azul */
+        .ev-header-2 { background-color: #99ff99; } /* Verde */
+
+
+        .input-group {
+            display: flex;
+            margin: 15px 0;
+        }
+
+        .input-group input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px 0 0 4px;
+            font-size: 1em;
+        }
+
+        .input-group button {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            cursor: pointer;
+            border-radius: 0 4px 4px 0;
+            transition: background-color 0.3s;
+        }
+
+        .input-group button:hover {
+            background-color: #1e7e34;
+        }
+
+        .student-list {
+            list-style: none;
+            padding: 0;
+            min-height: 50px;
+        }
+
+        .student-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            font-size: 1.1em;
+        }
+
+        .student-item:last-child {
+            border-bottom: none;
+        }
+
+        .delete-btn {
+            background: none;
+            border: none;
+            color: #dc3545; /* Rojo para el icono de eliminar */
+            font-size: 1.2em;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: color 0.2s;
+        }
+
+        .delete-btn:hover {
+            color: #c82333;
+        }
+    </style>
+</head>
+<body>
+    <h1>📝 Seguimiento de Evaluaciones Pendientes por Curso</h1>
+    <p>Añade los cursos y monitoriza a los alumnos que tengan evaluaciones pendientes.</p>
+
+    <div id="main-grid-container" class="main-grid-container">
+        </div>
+
+    <script>
+        // --- JAVASCRIPT ---
+        const evaluations = ['ev0', 'ev1', 'ev2'];
+        const totalCourses = 4;
+        const courseKeys = Array.from({ length: totalCourses }, (_, i) => `course_${i + 1}`);
+
+        // Función principal para inicializar y cargar datos
+        document.addEventListener('DOMContentLoaded', () => {
+            const mainContainer = document.getElementById('main-grid-container');
+
+            // 1. Crear las 4 columnas de curso
+            courseKeys.forEach(courseKey => {
+                mainContainer.appendChild(createCourseColumn(courseKey));
+            });
+
+            // 2. Cargar datos guardados (referencias y alumnos)
+            loadAllData();
+        });
+
+        // --- ESTRUCTURA DINÁMICA DE LA INTERFAZ ---
+
+        function createCourseColumn(courseKey) {
+            const column = document.createElement('div');
+            column.className = 'course-column';
+            column.id = `column-${courseKey}`;
+
+            // Campo de Referencia del Curso
+            column.innerHTML += `
+                <div class="course-reference">
+                    <input 
+                        type="text" 
+                        id="ref-input-${courseKey}" 
+                        class="course-ref-input" 
+                        placeholder="Curso ${courseKey.split('_')[1]}"
+                        onchange="saveCourseReference('${courseKey}', this.value)"
+                    >
+                </div>
+            `;
+
+            // Secciones de Evaluación (EV0, EV1, EV2)
+            evaluations.forEach((ev, index) => {
+                column.innerHTML += `
+                    <div class="evaluation-section">
+                        <h2 class="ev-header ev-header-${index}">EV${index}</h2>
+                        <div class="input-group">
+                            <input type="text" id="input-${courseKey}-${ev}" placeholder="Nombre del Alumno/a...">
+                            <button onclick="addStudent('${courseKey}', '${ev}')">Añadir</button>
+                        </div>
+                        <ul id="list-${courseKey}-${ev}" class="student-list">
+                            </ul>
+                    </div>
+                `;
+            });
+
+            return column;
+        }
+
+        // --- LÓGICA DE ALUMNOS (AÑADIR/ELIMINAR) ---
+
+        function addStudent(courseKey, evaluation) {
+            const inputElement = document.getElementById(`input-${courseKey}-${evaluation}`);
+            const studentName = inputElement.value.trim();
+
+            if (studentName === "") {
+                alert("Por favor, introduce el nombre del alumno/a.");
+                return;
+            }
+
+            const uniqueId = `${courseKey}_${evaluation}`;
+            
+            // 1. Guardar en la memoria local
+            saveStudent(uniqueId, studentName);
+            
+            // 2. Crear y mostrar el elemento de la lista
+            createStudentItem(uniqueId, studentName); 
+            
+            // 3. Limpiar el input
+            inputElement.value = ""; 
+        }
+
+        // Función que crea el elemento <li> con el botón de eliminar y lo adjunta
+        function createStudentItem(uniqueId, name) {
+            const list = document.getElementById(`list-${uniqueId}`);
+            
+            if (!list) {
+                console.error(`Error de DOM: No se encontró la lista con ID: list-${uniqueId}`);
+                return;
+            } 
+
+            const listItem = document.createElement('li');
+            listItem.className = 'student-item';
+            listItem.innerHTML = `
+                <span>${name}</span>
+                <button class="delete-btn" onclick="removeStudent('${uniqueId}', this)">
+                    ❌
+                </button>
+            `;
+
+            // AÑADIR EL NUEVO ELEMENTO AL PRINCIPIO DE LA LISTA
+            list.appendChild(listItem);
+        }
+
+        // Función para eliminar un alumno y actualizar el almacenamiento (se activa al hacer clic en ❌)
+        function removeStudent(uniqueId, buttonElement) {
+            const listItem = buttonElement.parentNode;
+            // No es necesario obtener el nombre aquí, solo eliminar el elemento del DOM
+            const studentName = listItem.querySelector('span').textContent;
+
+
+            // 1. Eliminar del DOM
+            listItem.remove();
+
+            // 2. Eliminar del almacenamiento local
+            deleteStudent(uniqueId, studentName);
+        }
+
+
+        // --- FUNCIONES DE ALMACENAMIENTO LOCAL (PERSISTENCIA) ---
+
+        function saveCourseReference(courseKey, refValue) {
+            localStorage.setItem(`ref_${courseKey}`, refValue);
+        }
+
+        function saveStudent(uniqueId, name) {
+            const students = JSON.parse(localStorage.getItem(uniqueId)) || [];
+            
+            if (!students.includes(name)) {
+                students.push(name);
+                localStorage.setItem(uniqueId, JSON.stringify(students));
+            }
+        }
+
+        function deleteStudent(uniqueId, name) {
+            let students = JSON.parse(localStorage.getItem(uniqueId)) || [];
+            
+            students = students.filter(student => student !== name);
+            
+            localStorage.setItem(uniqueId, JSON.stringify(students));
+        }
+
+        function loadAllData() {
+            courseKeys.forEach(courseKey => {
+                const savedRef = localStorage.getItem(`ref_${courseKey}`);
+                if (savedRef) {
+                    const refInput = document.getElementById(`ref-input-${courseKey}`);
+                    if (refInput) {
+                        refInput.value = savedRef;
+                    }
+                }
+
+                evaluations.forEach(ev => {
+                    const uniqueId = `${courseKey}_${ev}`;
+                    const students = JSON.parse(localStorage.getItem(uniqueId)) || [];
+                    
+                    students.forEach(name => {
+                        createStudentItem(uniqueId, name);
+                    });
+                });
+            });
+        }
+    </script>
+</body>
+</html>
