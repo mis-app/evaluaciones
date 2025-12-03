@@ -147,14 +147,17 @@
         const courseKeys = Array.from({ length: totalCourses }, (_, i) => `course_${i + 1}`);
 
         document.addEventListener('DOMContentLoaded', () => {
+            console.log('Iniciando aplicación...');
             const mainContainer = document.getElementById('main-grid-container');
 
             courseKeys.forEach(courseKey => {
-                mainContainer.appendChild(createCourseColumn(courseKey));
+                const column = createCourseColumn(courseKey);
+                mainContainer.appendChild(column);
+                console.log(`Columna creada: ${courseKey}`);
             });
 
-            loadAllData();
             attachEventListeners();
+            loadAllData();
         });
 
         function createCourseColumn(courseKey) {
@@ -165,14 +168,14 @@
             // Crear referencia del curso
             const courseRef = document.createElement('div');
             courseRef.className = 'course-reference';
-            courseRef.innerHTML = `
-                <input 
-                    type="text" 
-                    id="ref-input-${courseKey}" 
-                    class="course-ref-input" 
-                    placeholder="Curso ${courseKey.split('_')[1]}"
-                >
-            `;
+            
+            const refInput = document.createElement('input');
+            refInput.type = 'text';
+            refInput.id = `ref-input-${courseKey}`;
+            refInput.className = 'course-ref-input';
+            refInput.placeholder = `Curso ${courseKey.split('_')[1]}`;
+            
+            courseRef.appendChild(refInput);
             column.appendChild(courseRef);
 
             // Crear secciones de evaluación
@@ -180,16 +183,40 @@
                 const section = document.createElement('div');
                 section.className = 'evaluation-section';
                 
-                section.innerHTML = `
-                    <h2 class="ev-header ev-header-${index}">EV${index}</h2>
-                    <div class="input-group">
-                        <input type="text" id="input-${courseKey}-${ev}" placeholder="Nombre del Alumno/a...">
-                        <button class="add-student-btn" data-course="${courseKey}" data-eval="${ev}">Añadir</button>
-                    </div>
-                    <ul id="list-${courseKey}-${ev}" class="student-list"></ul>
-                `;
+                // Crear header
+                const header = document.createElement('h2');
+                header.className = `ev-header ev-header-${index}`;
+                header.textContent = `EV${index}`;
+                section.appendChild(header);
+                
+                // Crear input group
+                const inputGroup = document.createElement('div');
+                inputGroup.className = 'input-group';
+                
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.id = `input-${courseKey}-${ev}`;
+                input.placeholder = 'Nombre del Alumno/a...';
+                
+                const button = document.createElement('button');
+                button.className = 'add-student-btn';
+                button.setAttribute('data-course', courseKey);
+                button.setAttribute('data-eval', ev);
+                button.textContent = 'Añadir';
+                
+                inputGroup.appendChild(input);
+                inputGroup.appendChild(button);
+                section.appendChild(inputGroup);
+                
+                // Crear lista de estudiantes
+                const list = document.createElement('ul');
+                list.id = `list-${courseKey}-${ev}`;
+                list.className = 'student-list';
+                section.appendChild(list);
                 
                 column.appendChild(section);
+                
+                console.log(`Lista creada con ID: list-${courseKey}-${ev}`);
             });
 
             return column;
@@ -201,6 +228,7 @@
                 button.addEventListener('click', function() {
                     const courseKey = this.getAttribute('data-course');
                     const evaluation = this.getAttribute('data-eval');
+                    console.log(`Añadiendo alumno: ${courseKey} - ${evaluation}`);
                     addStudent(courseKey, evaluation);
                 });
             });
@@ -223,7 +251,8 @@
                 return;
             }
 
-            const uniqueId = `${courseKey}_${evaluation}`;
+            const uniqueId = `${courseKey}-${evaluation}`;
+            console.log(`Guardando alumno en: ${uniqueId}`);
             
             if (saveStudent(uniqueId, studentName)) {
                 createStudentItem(uniqueId, studentName);
@@ -235,10 +264,17 @@
         }
 
         function createStudentItem(uniqueId, name) {
-            const list = document.getElementById(`list-${uniqueId}`);
+            const listId = `list-${uniqueId}`;
+            const list = document.getElementById(listId);
+            
+            console.log(`Buscando lista: ${listId}`);
+            console.log('Lista encontrada:', list);
             
             if (!list) {
-                console.error(`Error: No se encontró la lista con ID: list-${uniqueId}`);
+                console.error(`Error: No se encontró la lista con ID: ${listId}`);
+                // Intentar mostrar todas las listas disponibles
+                const allLists = document.querySelectorAll('.student-list');
+                console.log('Listas disponibles:', Array.from(allLists).map(l => l.id));
                 return;
             }
 
@@ -259,6 +295,8 @@
             listItem.appendChild(nameSpan);
             listItem.appendChild(deleteBtn);
             list.appendChild(listItem);
+            
+            console.log(`Alumno añadido: ${name} en ${listId}`);
         }
 
         function removeStudent(uniqueId, studentName, listItem) {
@@ -298,7 +336,7 @@
                 }
 
                 evaluations.forEach(ev => {
-                    const uniqueId = `${courseKey}_${ev}`;
+                    const uniqueId = `${courseKey}-${ev}`;
                     const students = JSON.parse(localStorage.getItem(uniqueId)) || [];
                     
                     students.forEach(name => {
