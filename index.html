@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Seguimiento de Evaluaciones - Múltiples Cursos</title>
     <style>
-        /* --- CSS (Estilos) --- */
         body {
             font-family: sans-serif;
             background-color: #f4f4f9;
@@ -39,7 +38,6 @@
             padding: 20px;
         }
 
-        /* --- Estilo del Input/Header de Referencia del Curso --- */
         .course-reference {
             display: flex;
             margin-bottom: 15px;
@@ -58,7 +56,6 @@
             background-color: #e9ecef;
         }
 
-        /* --- Estilo de las Evaluaciones (EV0, EV1, EV2) --- */
         .evaluation-section {
             margin-bottom: 20px;
         }
@@ -73,11 +70,9 @@
             border-radius: 4px;
         }
 
-        /* Colores originales */
-        .ev-header-0 { background-color: #ff6666; } /* Rojo */
-        .ev-header-1 { background-color: #66b3ff; } /* Azul */
-        .ev-header-2 { background-color: #99ff99; } /* Verde */
-
+        .ev-header-0 { background-color: #ff6666; }
+        .ev-header-1 { background-color: #66b3ff; }
+        .ev-header-2 { background-color: #99ff99; }
 
         .input-group {
             display: flex;
@@ -128,7 +123,7 @@
         .delete-btn {
             background: none;
             border: none;
-            color: #dc3545; /* Rojo para el icono de eliminar */
+            color: #dc3545;
             font-size: 1.2em;
             cursor: pointer;
             margin-left: 10px;
@@ -141,90 +136,83 @@
     </style>
 </head>
 <body>
-    <h1>📝 Seguimiento de Evaluaciones Pendientes por Curso</h1>
+    <h1>📋 Seguimiento de Evaluaciones Pendientes por Curso</h1>
     <p>Añade los cursos y monitoriza a los alumnos que tengan evaluaciones pendientes.</p>
 
-    <div id="main-grid-container" class="main-grid-container">
-        </div>
+    <div id="main-grid-container" class="main-grid-container"></div>
 
     <script>
-        // --- JAVASCRIPT ---
         const evaluations = ['ev0', 'ev1', 'ev2'];
         const totalCourses = 4;
         const courseKeys = Array.from({ length: totalCourses }, (_, i) => `course_${i + 1}`);
 
-        // --- INICIALIZACIÓN ---
-
         document.addEventListener('DOMContentLoaded', () => {
             const mainContainer = document.getElementById('main-grid-container');
 
-            // 1. Crear las 4 columnas de curso
             courseKeys.forEach(courseKey => {
                 mainContainer.appendChild(createCourseColumn(courseKey));
             });
 
-            // 2. Cargar datos guardados (persistencia)
             loadAllData();
-            
-            // 3. Conectar los botones de AÑADIR (Solución al problema de 'onclick')
-            attachEventListeners(); 
+            attachEventListeners();
         });
-
-        // --- ESTRUCTURA DINÁMICA DE LA INTERFAZ ---
 
         function createCourseColumn(courseKey) {
             const column = document.createElement('div');
             column.className = 'course-column';
             column.id = `column-${courseKey}`;
 
-            // Campo de Referencia del Curso
-            column.innerHTML += `
-                <div class="course-reference">
-                    <input 
-                        type="text" 
-                        id="ref-input-${courseKey}" 
-                        class="course-ref-input" 
-                        placeholder="Curso ${courseKey.split('_')[1]}"
-                        onchange="saveCourseReference('${courseKey}', this.value)"
-                    >
-                </div>
+            // Crear referencia del curso
+            const courseRef = document.createElement('div');
+            courseRef.className = 'course-reference';
+            courseRef.innerHTML = `
+                <input 
+                    type="text" 
+                    id="ref-input-${courseKey}" 
+                    class="course-ref-input" 
+                    placeholder="Curso ${courseKey.split('_')[1]}"
+                >
             `;
+            column.appendChild(courseRef);
 
-            // Secciones de Evaluación (EV0, EV1, EV2)
+            // Crear secciones de evaluación
             evaluations.forEach((ev, index) => {
-                column.innerHTML += `
-                    <div class="evaluation-section">
-                        <h2 class="ev-header ev-header-${index}">EV${index}</h2>
-                        <div class="input-group">
-                            <input type="text" id="input-${courseKey}-${ev}" placeholder="Nombre del Alumno/a...">
-                            <button class="add-student-btn" data-course="${courseKey}" data-eval="${ev}">Añadir</button>
-                        </div>
-                        <ul id="list-${courseKey}-${ev}" class="student-list">
-                            </ul>
+                const section = document.createElement('div');
+                section.className = 'evaluation-section';
+                
+                section.innerHTML = `
+                    <h2 class="ev-header ev-header-${index}">EV${index}</h2>
+                    <div class="input-group">
+                        <input type="text" id="input-${courseKey}-${ev}" placeholder="Nombre del Alumno/a...">
+                        <button class="add-student-btn" data-course="${courseKey}" data-eval="${ev}">Añadir</button>
                     </div>
+                    <ul id="list-${courseKey}-${ev}" class="student-list"></ul>
                 `;
+                
+                column.appendChild(section);
             });
 
             return column;
         }
         
-        // --- CONEXIÓN DE EVENTOS (SOLUCIÓN) ---
-        
         function attachEventListeners() {
-            // Conectar el evento CLICK a todos los botones con la clase 'add-student-btn'
+            // Eventos para botones de añadir
             document.querySelectorAll('.add-student-btn').forEach(button => {
                 button.addEventListener('click', function() {
                     const courseKey = this.getAttribute('data-course');
                     const evaluation = this.getAttribute('data-eval');
-                    
-                    // Llamar a la lógica principal con los datos extraídos
                     addStudent(courseKey, evaluation);
                 });
             });
+
+            // Eventos para inputs de referencia del curso
+            document.querySelectorAll('.course-ref-input').forEach(input => {
+                input.addEventListener('change', function() {
+                    const courseKey = this.id.replace('ref-input-', '');
+                    saveCourseReference(courseKey, this.value);
+                });
+            });
         }
-
-
-        // --- LÓGICA DE ALUMNOS (AÑADIR/ELIMINAR) ---
 
         function addStudent(courseKey, evaluation) {
             const inputElement = document.getElementById(`input-${courseKey}-${evaluation}`);
@@ -237,53 +225,46 @@
 
             const uniqueId = `${courseKey}_${evaluation}`;
             
-            // 1. Guardar en la memoria local (solo si no existe)
             if (saveStudent(uniqueId, studentName)) {
-                 // 2. Crear y mostrar el elemento de la lista (solo si se guardó)
-                createStudentItem(uniqueId, studentName); 
+                createStudentItem(uniqueId, studentName);
+            } else {
+                alert("Este alumno ya está en la lista.");
             }
            
-            // 3. Limpiar el input
-            inputElement.value = ""; 
+            inputElement.value = "";
         }
 
-        // Función que crea el elemento <li> con el botón de eliminar y lo adjunta
         function createStudentItem(uniqueId, name) {
             const list = document.getElementById(`list-${uniqueId}`);
             
             if (!list) {
-                console.error(`Error de DOM: No se encontró la lista con ID: list-${uniqueId}`);
+                console.error(`Error: No se encontró la lista con ID: list-${uniqueId}`);
                 return;
-            } 
+            }
 
             const listItem = document.createElement('li');
             listItem.className = 'student-item';
+            listItem.setAttribute('data-student-name', name);
             
-            // Mantenemos el onclick para el botón de eliminar, ya que es un elemento dinámico y funciona
-            listItem.innerHTML = `
-                <span>${name}</span>
-                <button class="delete-btn" onclick="removeStudent('${uniqueId}', this)">
-                    ❌
-                </button>
-            `;
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = name;
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.textContent = '✖';
+            deleteBtn.addEventListener('click', function() {
+                removeStudent(uniqueId, name, listItem);
+            });
 
+            listItem.appendChild(nameSpan);
+            listItem.appendChild(deleteBtn);
             list.appendChild(listItem);
         }
 
-        // Función para eliminar un alumno y actualizar el almacenamiento (se activa al hacer clic en ❌)
-        function removeStudent(uniqueId, buttonElement) {
-            const listItem = buttonElement.parentNode;
-            const studentName = listItem.querySelector('span').textContent;
-
-            // 1. Eliminar del DOM
+        function removeStudent(uniqueId, studentName, listItem) {
             listItem.remove();
-
-            // 2. Eliminar del almacenamiento local
             deleteStudent(uniqueId, studentName);
         }
-
-
-        // --- FUNCIONES DE ALMACENAMIENTO LOCAL (PERSISTENCIA) ---
 
         function saveCourseReference(courseKey, refValue) {
             localStorage.setItem(`ref_${courseKey}`, refValue);
@@ -295,16 +276,14 @@
             if (!students.includes(name)) {
                 students.push(name);
                 localStorage.setItem(uniqueId, JSON.stringify(students));
-                return true; // Éxito
+                return true;
             }
-            return false; // Duplicado
+            return false;
         }
 
         function deleteStudent(uniqueId, name) {
             let students = JSON.parse(localStorage.getItem(uniqueId)) || [];
-            
             students = students.filter(student => student !== name);
-            
             localStorage.setItem(uniqueId, JSON.stringify(students));
         }
 
