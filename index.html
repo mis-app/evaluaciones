@@ -26,9 +26,10 @@
 
         .main-grid-container {
             display: grid;
-            grid-template-columns: repeat(4, 1fr); 
-            gap: 20px;
-            padding: 0 10px; 
+            grid-template-columns: repeat(4, minmax(200px, 280px)); 
+            gap: 60px;
+            padding: 0 10px;
+            justify-content: center;
         }
 
         .course-column {
@@ -46,11 +47,12 @@
         }
 
         .course-ref-input {
-            flex-grow: 1;
+            width: 100%;
+            box-sizing: border-box;
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 4px;
-            font-size: 1.1em;
+            font-size: 1em;
             font-weight: bold;
             text-align: center;
             background-color: #e9ecef;
@@ -68,33 +70,73 @@
             color: white;
             font-size: 1.5em;
             border-radius: 4px;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            transition: background-color 0.3s;
+        }
+
+        .ev-header:hover {
+            opacity: 0.9;
         }
 
         .ev-header-0 { background-color: #ff6666; }
         .ev-header-1 { background-color: #66b3ff; }
         .ev-header-2 { background-color: #99ff99; }
 
+        .toggle-icon {
+            font-size: 0.8em;
+            transition: transform 0.3s;
+        }
+
+        .toggle-icon.collapsed {
+            transform: rotate(-90deg);
+        }
+
+        .ev-content {
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+        }
+
+        .ev-content.collapsed {
+            max-height: 0;
+            opacity: 0;
+        }
+
+        .ev-content.expanded {
+            max-height: 500px;
+            opacity: 1;
+        }
+
         .input-group {
             display: flex;
             margin: 15px 0;
+            width: 100%;
         }
 
         .input-group input {
             flex-grow: 1;
-            padding: 10px;
+            min-width: 0;
+            padding: 10px 8px;
             border: 1px solid #ccc;
             border-radius: 4px 0 0 4px;
-            font-size: 1em;
+            font-size: 0.9em;
+            box-sizing: border-box;
         }
 
         .input-group button {
             background-color: #28a745;
             color: white;
             border: none;
-            padding: 10px 15px;
+            padding: 10px 12px;
             cursor: pointer;
             border-radius: 0 4px 4px 0;
             transition: background-color 0.3s;
+            flex-shrink: 0;
+            font-size: 0.9em;
         }
 
         .input-group button:hover {
@@ -113,7 +155,13 @@
             align-items: center;
             padding: 10px;
             border-bottom: 1px solid #eee;
-            font-size: 1.1em;
+            font-size: 0.95em;
+            word-break: break-word;
+        }
+
+        .student-item span {
+            flex-grow: 1;
+            margin-right: 8px;
         }
 
         .student-item:last-child {
@@ -183,11 +231,38 @@
                 const section = document.createElement('div');
                 section.className = 'evaluation-section';
                 
-                // Crear header
+                // Crear header con icono de toggle
                 const header = document.createElement('h2');
                 header.className = `ev-header ev-header-${index}`;
-                header.textContent = `EV${index}`;
+                header.setAttribute('data-eval-index', index);
+                
+                const headerText = document.createElement('span');
+                headerText.textContent = `EV${index}`;
+                
+                const toggleIcon = document.createElement('span');
+                toggleIcon.className = 'toggle-icon';
+                toggleIcon.textContent = '▼';
+                
+                // EV1 y EV2 empiezan colapsadas
+                if (index > 0) {
+                    toggleIcon.classList.add('collapsed');
+                }
+                
+                header.appendChild(headerText);
+                header.appendChild(toggleIcon);
                 section.appendChild(header);
+                
+                // Crear contenedor de contenido
+                const content = document.createElement('div');
+                content.className = 'ev-content';
+                content.id = `content-${courseKey}-${ev}`;
+                
+                // EV1 y EV2 empiezan colapsadas
+                if (index > 0) {
+                    content.classList.add('collapsed');
+                } else {
+                    content.classList.add('expanded');
+                }
                 
                 // Crear input group
                 const inputGroup = document.createElement('div');
@@ -206,14 +281,15 @@
                 
                 inputGroup.appendChild(input);
                 inputGroup.appendChild(button);
-                section.appendChild(inputGroup);
+                content.appendChild(inputGroup);
                 
                 // Crear lista de estudiantes
                 const list = document.createElement('ul');
                 list.id = `list-${courseKey}-${ev}`;
                 list.className = 'student-list';
-                section.appendChild(list);
+                content.appendChild(list);
                 
+                section.appendChild(content);
                 column.appendChild(section);
                 
                 console.log(`Lista creada con ID: list-${courseKey}-${ev}`);
@@ -238,6 +314,40 @@
                 input.addEventListener('change', function() {
                     const courseKey = this.id.replace('ref-input-', '');
                     saveCourseReference(courseKey, this.value);
+                });
+            });
+
+            // Eventos para añadir alumno con Enter en los inputs
+            evaluations.forEach(ev => {
+                courseKeys.forEach(courseKey => {
+                    const input = document.getElementById(`input-${courseKey}-${ev}`);
+                    if (input) {
+                        input.addEventListener('keypress', function(event) {
+                            if (event.key === 'Enter') {
+                                event.preventDefault();
+                                addStudent(courseKey, ev);
+                            }
+                        });
+                    }
+                });
+            });
+
+            // Eventos para colapsar/expandir secciones de evaluación
+            document.querySelectorAll('.ev-header').forEach(header => {
+                header.addEventListener('click', function() {
+                    const section = this.parentElement;
+                    const content = section.querySelector('.ev-content');
+                    const icon = this.querySelector('.toggle-icon');
+                    
+                    if (content.classList.contains('collapsed')) {
+                        content.classList.remove('collapsed');
+                        content.classList.add('expanded');
+                        icon.classList.remove('collapsed');
+                    } else {
+                        content.classList.remove('expanded');
+                        content.classList.add('collapsed');
+                        icon.classList.add('collapsed');
+                    }
                 });
             });
         }
