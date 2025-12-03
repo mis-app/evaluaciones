@@ -248,6 +248,7 @@
 
             if (studentName === "") {
                 alert("Por favor, introduce el nombre del alumno/a.");
+                inputElement.focus();
                 return;
             }
 
@@ -256,11 +257,12 @@
             
             if (saveStudent(uniqueId, studentName)) {
                 createStudentItem(uniqueId, studentName);
+                inputElement.value = "";
+                inputElement.focus();
             } else {
                 alert("Este alumno ya está en la lista.");
+                inputElement.focus();
             }
-           
-            inputElement.value = "";
         }
 
         function createStudentItem(uniqueId, name) {
